@@ -59,8 +59,10 @@ interface GenerateScriptDialogProps {
 }
 
 export default function GenerateScriptDialog({
+  regenerate,
   children,
 }: {
+  regenerate?: any;
   children: React.ReactNode;
 }) {
   const {
@@ -142,6 +144,7 @@ export default function GenerateScriptDialog({
       console.error("Fetch error:", err);
       setLoading(false);
     } finally {
+      regenerate();
       reset(); // reset form if needed
     }
   };
