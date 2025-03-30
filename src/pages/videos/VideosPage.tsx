@@ -1,11 +1,12 @@
-import React from "react";
-import Navbar from "../home/Navbar";
+import { useEffect, useState } from "react";
+
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { IoVideocam } from "react-icons/io5";
 import Wrapper from "@/components/Wrapper";
 import Breadcrumb from "@/components/ui/custom/CustomBreadcrumb";
 import GenerateScriptDialog from "@/components/dialogs/GenerateScriptDialog";
+import httpClient from "@/lib/httpClient";
 
 const images = [
   {
@@ -59,6 +60,28 @@ const images = [
 ];
 
 export default function VideosPage() {
+  const [loading, setLoading] = useState(false);
+  const [videos, setVideos] = useState<any[]>([]);
+
+  useEffect(() => {
+    getVideos();
+  }, []);
+
+  const getVideos = async () => {
+    httpClient()
+      .get("/agents/videos")
+      .then((res) => {
+        console.log(res.data);
+        setVideos(res.data);
+      })
+      .catch((err) => {
+        console.log(err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  };
+
   return (
     <Wrapper>
       <div className="flex flex-col gap-4 ">
@@ -79,17 +102,52 @@ export default function VideosPage() {
         </div>
         <div className=" h-[calc(100dvh-135px)] pb-4 overflow-y-auto">
           <div className="grid grid-cols-6  gap-4 container mx-auto px-4">
-            {images?.map((image, index) => (
-              <Link to={`/videos/${index}`} key={index}>
-                <div className="w-full h-64 overflow-hidden rounded-lg shadow-lg">
-                  <img
-                    src={image.url}
-                    alt={`Image ${index + 1}`}
-                    className="object-cover shadow w-full h-full transition-transform duration-300 transform hover:scale-105"
+            {/* {images?.map((image, index) => ( */}
+
+            {videos?.length === 0 && (
+              <div className="w-full flex flex-col items-center justify-center col-span-6  aspect-video">
+                <p className="text-gray-500 text-center mb-4">
+                  No videos found. Generate a new one!
+                  <br />
+                  <span className="text-gray-400">
+                    Click the button below to generate a new video.
+                  </span>
+                </p>
+
+                <GenerateScriptDialog>
+                  <Button className="bg-gradient-to-r from-blue-500 to-purple-500 mt-4">
+                    Generate Video
+                  </Button>
+                </GenerateScriptDialog>
+              </div>
+            )}
+            {loading && (
+              <div className="w-full flex items-center justify-center col-span-6  aspect-video">
+                <p className="text-gray-500">Loading...</p>
+              </div>
+            )}
+            {videos?.length > 0 &&
+              videos?.map((video, index) => (
+                <Link to={`/videos/${video?._id}`} key={index}>
+                  <video
+                    // className="w-full object-cover object-center"
+                    className="object-cover  shadow w-full h-full transition-transform duration-300 transform hover:scale-105"
+                    style={{
+                      aspectRatio: "9:16",
+                    }}
+                    preload="metadata"
+                    src={video?.url}
+                    // onLoadedMetadata={() => setShowImageLoading(false)}
                   />
-                </div>
-              </Link>
-            ))}
+                  {/* <div className="w-full h-64 overflow-hidden rounded-lg shadow-lg">
+                    <img
+                      src={image.url}
+                      alt={`Image ${index + 1}`}
+                      className="object-cover shadow w-full h-full transition-transform duration-300 transform hover:scale-105"
+                    />
+                  </div> */}
+                </Link>
+              ))}
           </div>
         </div>
       </div>

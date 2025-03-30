@@ -1,14 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/context/AuthContext";
 
 export default function Navbar() {
-  const connectGoogle = () => {
-    // Logic to connect to Google account
-    console.log("Connecting to Google account...");
-  };
-
-  const isAuthenticated = false; // Replace with actual authentication check
+  const { isAuthenticated, user } = useAuth();
   return (
     <nav className="border-b p-4 w-full">
       <div className="flex items-center w-full container mx-auto justify-between">
@@ -38,26 +34,33 @@ export default function Navbar() {
         {isAuthenticated ? (
           <div className="flex items-center gap-2">
             <Avatar>
-              <AvatarImage src="https://github.com/shadcn.png" />
-              <AvatarFallback>CN</AvatarFallback>
+              <AvatarImage
+                src={user?.avatar || "https://github.com/shadcn.png"}
+              />
+              <AvatarFallback>
+                {user?.firstName?.charAt(0).toUpperCase() +
+                  user?.lastName?.charAt(0).toUpperCase()}
+              </AvatarFallback>
             </Avatar>
             <div className="flex flex-col items-start gap-3.5">
               <span className="text-sm font-medium leading-0">
-                Adnan Siddiqui
+                {user?.firstName} {user?.lastName}
               </span>
               <span className="text-xs text-muted-foreground leading-0">
-                adnan@jutsu.ai
+                {user?.email}
               </span>
             </div>
           </div>
         ) : (
-          <Button variant="outline" onClick={() => connectGoogle()}>
-            <img
-              src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg"
-              className="size-4"
-            />
-            Signup with Google
-          </Button>
+          <Link to={`${import.meta.env.VITE_API_URL}/auth/google`}>
+            <Button variant="outline">
+              <img
+                src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg"
+                className="size-4"
+              />
+              Signup with Google
+            </Button>
+          </Link>
         )}
       </div>
     </nav>

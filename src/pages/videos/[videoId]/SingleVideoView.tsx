@@ -6,32 +6,56 @@ import { useParams } from "react-router";
 import { PiExport } from "react-icons/pi";
 import downloadFiles, { downloadFilesHandler } from "@/lib/downloadFiles";
 import { toast } from "sonner";
+import { useEffect, useState } from "react";
+import httpClient from "@/lib/httpClient";
 
 // const video = {
 //   url: "https://s3.amazonaws.com/cdn.postt.ai/platform-images/landing-page/IntroVideo.webm",
 // };
-const video = {
-  url: "https://s3.amazonaws.com/cdn.postt.ai/production/linkedin/67d40e99242de3d16d7a8b81/posts/67e87ef3f500bcb7ef78e7d1/videos/cat_programmer_hackathon.mp4",
-};
+// const video = {
+//   url: "https://s3.amazonaws.com/cdn.postt.ai/production/linkedin/67d40e99242de3d16d7a8b81/posts/67e87ef3f500bcb7ef78e7d1/videos/cat_programmer_hackathon.mp4",
+// };
 export default function SingleVideoView() {
   const { videoId } = useParams();
 
-  const handleExport = () => {
-    toast.promise(downloadFilesHandler(video?.url), {
-      loading: "Exporting video...",
-      success: () => {
-        return "Video exported successfully!";
-      },
-      error: (err) => {
-        return err?.message || "Failed to export video.";
-      },
-    });
+  const [loading, setLoading] = useState(true);
+  const [video, setVideo] = useState<any>(null);
+
+  useEffect(() => {
+    getVideos();
+  }, []);
+
+  const getVideos = async () => {
+    httpClient()
+      .get(`/agents/videos/${videoId}`)
+      .then((res) => {
+        console.log(res.data);
+        setVideo(res.data);
+      })
+      .catch((err) => {
+        console.log(err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
-  const handlePublish = () => {
-    // Logic to publish the video to YouTube
-    toast.success("Video published to YouTube successfully!");
-  };
+  // const handleExport = () => {
+  //   toast.promise(downloadFilesHandler(video?.url), {
+  //     loading: "Exporting video...",
+  //     success: () => {
+  //       return "Video exported successfully!";
+  //     },
+  //     error: (err) => {
+  //       return err?.message || "Failed to export video.";
+  //     },
+  //   });
+  // };
+
+  // const handlePublish = () => {
+  //   // Logic to publish the video to YouTube
+  //   toast.success("Video published to YouTube successfully!");
+  // };
   return (
     <Wrapper>
       <div className="flex flex-col h-[calc(100dvh-85px)]  gap-4 pb-4">

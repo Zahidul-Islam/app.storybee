@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Dialog,
   DialogClose,
@@ -32,6 +32,8 @@ import {
 } from "@/components/ui/select";
 import { Button } from "../ui/button";
 import { useNavigate } from "react-router";
+import httpClient from "@/lib/httpClient";
+import { toast } from "sonner";
 export const initialTones = [
   { name: "Professional", value: "professional" },
   { name: "Inspirational", value: "inspirational" },
@@ -71,10 +73,104 @@ export default function GenerateScriptDialog({
 
   const navigate = useNavigate();
 
-  const onSubmit: SubmitHandler<GenerateScriptDialogProps> = (data) => {
-    console.log(data);
-    navigate("/videos/create");
+  const [loading, setLoading] = useState(false);
+  const [steps, setSteps] = useState({});
+
+  const onSubmit: SubmitHandler<GenerateScriptDialogProps> = async (data) => {
+    setLoading(true);
+    setSteps({});
+    const token = localStorage.getItem("_auth_accessToken");
+    const API_URL = import.meta.env.VITE_API_URL;
+
+    try {
+      const res = await fetch(`${API_URL}/agents/scripts`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Access-Control-Allow-Origin": "*",
+          "Access-Control-Allow-Credentials": "true",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          topic: data.prompt,
+        }),
+      });
+
+      if (!res.body) {
+        console.error("No response body");
+        setLoading(false);
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() || "";
+
+        for (const part of parts) {
+          if (part.startsWith("data: ")) {
+            const jsonStr = part.replace(/^data:\s*/, "");
+            try {
+              const parsed = JSON.parse(jsonStr);
+              console.log("Streamed update:", parsed);
+              setSteps((prev) => ({
+                ...prev,
+                [parsed.step]: parsed.message,
+              }));
+
+              toast.success(`Step ${parsed.step} completed: ${parsed.message}`);
+
+              if (parsed.step === "done") {
+                setLoading(false);
+              }
+            } catch (err) {
+              console.error("Failed to parse stream data:", err);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Fetch error:", err);
+      setLoading(false);
+    } finally {
+      reset(); // reset form if needed
+    }
   };
+
+  // const onSubmit: SubmitHandler<GenerateScriptDialogProps> = (data) => {
+  //   console.log(data);
+  //   // navigate("/videos/create");//
+
+  //   setLoading(true);
+
+  //   httpClient()
+  //     .post("/agents/scripts", {
+  //       topic: data.prompt,
+  //       // prompt: data.prompt,
+  //       // topic: data.topic,
+  //       // image: data.image,
+  //       // tone: data.tone,
+  //     })
+  //     .then((res) => {
+  //       console.log(res.data);
+  //     })
+  //     .catch((err) => {
+  //       console.log(err);
+  //     })
+  //     .finally(() => {
+  //       setLoading(false);
+  //       reset();
+  //     });
+  // };
 
   return (
     <Dialog
@@ -87,7 +183,7 @@ export default function GenerateScriptDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="!max-w-xl">
         <DialogHeader>
-          <DialogTitle>Generate Script</DialogTitle>
+          <DialogTitle>Generate Script {loading ? "loading" : ""} </DialogTitle>
           <DialogDescription>
             Fill in the details below to generate a script for your video.
           </DialogDescription>
@@ -105,7 +201,9 @@ export default function GenerateScriptDialog({
             className="resize-none row-span-16 bg-muted"
           />
 
-          <CustomInput
+          {/* {JSON.stringify(steps)} */}
+
+          {/* <CustomInput
             {...register("topic", {
               required: "topic cannot be empty",
             })}
@@ -187,7 +285,7 @@ export default function GenerateScriptDialog({
                 </Select>
               )}
             />
-          </div>
+          </div> */}
           <DialogFooter className="flex">
             <DialogClose asChild>
               <Button type="button" variant="secondary" className="flex-1">
@@ -197,8 +295,9 @@ export default function GenerateScriptDialog({
             <Button
               type="submit"
               className="bg-gradient-to-r from-blue-500 to-purple-500 flex-1"
+              disabled={loading}
             >
-              Generate
+              {loading ? "Generating..." : "Generate"}
             </Button>
           </DialogFooter>
         </form>
